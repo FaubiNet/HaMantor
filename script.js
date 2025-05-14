@@ -6,7 +6,7 @@ class Hamentor {
     this.history = document.querySelector('.message-history');
     this.themeToggle = document.querySelector('.theme-toggle');
     this.clearButton = document.querySelector('.clear-chat');
-    this.messages = []; // Stocker l'historique structuré
+    
 
     this.init();
   }
@@ -17,31 +17,6 @@ class Hamentor {
     this.setupEventListeners();
     this.setupAutoResize();
   }
-
-
-  // Charger l'historique depuis localStorage
-  loadHistory() {
-    const savedHistory = localStorage.getItem('chatHistory');
-    if (savedHistory) {
-      this.messages = JSON.parse(savedHistory);
-      this.renderHistory();
-    }
-  }
-
-  // Sauvegarder l'historique formaté
-  saveHistory() {
-    localStorage.setItem('chatHistory', JSON.stringify(this.messages));
-  }
-
-  // Afficher l'historique au chargement
-  renderHistory() {
-    this.history.innerHTML = '';
-    this.messages.forEach(msg => {
-      const formatted = msg.role === 'user' ? msg.content : this.formatResponse(msg.content);
-      this.createMessageElement(formatted, msg.role);
-    });
-  }
-
 
   setupEventListeners() {
     this.form.addEventListener('submit', (e) => this.handleSubmit(e));
@@ -56,11 +31,6 @@ class Hamentor {
     });
   }
 
-  // Ajouter un message à l'historique
-  addMessage(content, role) {
-    this.messages.push({ role, content });
-    this.saveHistory();
-  }
 async handleSubmit(e) {
   e.preventDefault();
   const message = this.input.value.trim();
@@ -71,9 +41,7 @@ async handleSubmit(e) {
     return;
   }
 
-// Ajouter le message utilisateur
-    this.addMessage(message, 'user');
-    this.createMessageElement(message, 'user');
+  this.addMessage(message, 'user');
   this.input.value = '';
   this.input.style.height = 'auto'; // ✅ Réinitialise la zone de saisie
 
@@ -81,14 +49,10 @@ async handleSubmit(e) {
   this.history.appendChild(loading);
   loading.scrollIntoView({ behavior: 'smooth' });
 
- // Envoyer l'historique complet au backend
-    try {
-      const response = await this.fetchAIResponse(message);
-      
-      // Ajouter la réponse de l'IA
-      this.addMessage(response.raw, 'assistant');
-      this.createMessageElement(response.formatted, 'assistant');
-    } catch (error) {
+  try {
+    const response = await this.fetchAIResponse(message);
+    this.addMessage(response, 'ai');
+  } catch (error) {
     this.showError(error.message);
   } finally {
     loading.remove();
@@ -101,25 +65,13 @@ async handleSubmit(e) {
     const response = await fetch(this.API_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        prompt: prompt,
-        history: this.messages
-      })
+      body: JSON.stringify({ prompt })
     });
 
     if (!response.ok) throw new Error('Erreur de réseau');
     
     const data = await response.json();
     return this.formatResponse(data);
-  }
-
-  createMessageElement(content, role) {
-    const message = document.createElement('div');
-    message.className = `message ${role === 'user' ? 'user' : 'ai'}`;
-    message.innerHTML = content;
-    this.history.appendChild(message);
-    message.scrollIntoView({ behavior: 'smooth' });
-    return message;
   }
 
   formatResponse(data) {
@@ -133,6 +85,19 @@ async handleSubmit(e) {
       );
   }
 
+  addMessage(content, type) {
+    const message = document.createElement('div');
+    message.className = `message ${type}`;
+    message.innerHTML = content;
+    
+    if (document.querySelector('.empty-chat')) {
+      document.querySelector('.empty-chat').remove();
+    }
+
+    this.history.appendChild(message);
+    this.saveHistory();
+    message.scrollIntoView({ behavior: 'smooth' });
+  }
 
   createLoadingElement() {
     const loader = document.createElement('div');

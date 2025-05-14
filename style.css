@@ -93,22 +93,6 @@ body {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
- overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--primary-500) var(--surface-dark);
-}
-
-.message-history::-webkit-scrollbar {
-  width: 8px;
-}
-
-.message-history::-webkit-scrollbar-track {
-  background: var(--surface-dark);
-}
-
-.message-history::-webkit-scrollbar-thumb {
-  background-color: var(--primary-500);
-  border-radius: var(--radius-sm);
 }
 
 .message {
