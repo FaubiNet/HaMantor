@@ -8,7 +8,7 @@
   --surface-light: #F8FAFC;
   --text-primary: #F8FAFC;
   --text-secondary: #94A3B8;
-  
+  --highlight: #A855F7;
   --radius-sm: 0.5rem;
   --radius-md: 1rem;
   --radius-lg: 1.5rem;
@@ -21,6 +21,7 @@
   --surface-dark: #E2E8F0;
   --text-primary: #0F172A;
   --text-secondary: #64748B;
+  --highlight: #6D28D9;
 }
 
 * {
@@ -158,11 +159,13 @@ body {
 }
 
 .input-panel {
+  background: var(--surface-dark);
+  padding: 1rem;
+  border-top: 1px solid var(--surface-light);
+  box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
   position: sticky;
   bottom: 0;
-  background: var(--primary-900);
-  padding: 1.5rem 0;
-  border-top: 1px solid var(--surface-dark);
+  z-index: 10;
 }
 
 .input-group {
@@ -180,10 +183,16 @@ body {
   padding: 1rem 1.5rem;
   font-size: 1rem;
   line-height: 1.5;
-  border: none;
+  border: 2px solid var(--surface-light);
   resize: none;
   min-height: 44px;
   max-height: 200px;
+  transition: border-color 0.3s ease;
+}
+
+.ai-input:focus {
+  outline: none;
+  border-color: var(--primary-500);
 }
 
 .button-group {
@@ -241,6 +250,18 @@ body {
   to {
     transform: rotate(360deg);
   }
+}
+
+@media (max-width: 768px) {
+  .title { font-size: 2rem; }
+  .branding { flex-direction: column; text-align: center; }
+  .message { max-width: 90%; }
+}
+
+@media (max-width: 480px) {
+  .button-group { gap: 0.3rem; }
+  .utility-button, .send-button { width: 36px; height: 36px; }
+  .ai-input { padding-right: 110px; }
 }
 
 
@@ -312,10 +333,4 @@ body {
 .button-group .material-symbols-rounded {
   font-size: 1.5rem;
   vertical-align: middle;
-}
-body.light .icon-send svg {
-  color: #333;
-}
-body.dark .icon-send svg {
-  color: #fff;
 }
