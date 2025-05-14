@@ -1,6 +1,6 @@
 class Hamentor {
   constructor() {
-    this.API_URL = '/.netlify-functions/gemini';
+    this.API_URL = '/.netlify/functions/gemini';
     this.aiInput = document.querySelector('.ai-input');
 
     this.init();
@@ -67,27 +67,34 @@ createLoadingElement() {
   `;
   return loader;
 }
-
-  async fetchAIResponse(prompt) {
    
 
+// Remplacer toute la méthode fetchAIResponse par :
+async fetchAIResponse(prompt) {
+  try {
+    const response = await fetch('/api/gemini', { // Modifier l'URL ici
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt })
+    });
 
-  async fetchAIResponse(prompt) {
-    try {
-      const response = await fetch(this.API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt })
-      });
-
-      if (!response.ok) throw new Error('Erreur API');
-      
-      const data = await response.json();
-      return this.formatResponse(data);
-    } catch (error) {
-      throw new Error(this.translateError(error.message));
-    }
+    if (!response.ok) throw new Error('Erreur API');
+    
+    const data = await response.json();
+    // Adapter au nouveau format de réponse
+    return this.formatResponse({ text: data.response });
+  } catch (error) {
+    throw new Error(this.translateError(error.message));
   }
+}
+
+// Modifier formatResponse :
+formatResponse(data) {
+  return data.text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\[🔐]/g, '🔐 <strong>Conseil Sécurité :</strong>')
+    .replace(/```(\w+)?/g, '<div class="code-block">')
+    .replace(/```/g, '</div>');
 }
 
 translateError(error) {
@@ -108,15 +115,6 @@ translateError(error) {
   return 'Erreur inconnue : veuillez contacter l’équipe Hackers Academy.';
 }
 
-
-formatResponse(data) {
-  let text = data.candidates[0].content.parts[0].text;
-  return text
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Nouveau
-    .replace(/\[🔐]/g, '🔐 <strong>Conseil Sécurité :</strong>')
-    .replace(/```(\w+)?/g, '<div class="code-block">')
-    .replace(/```/g, '</div>');
-}
 
 
 addMessage(content, sender) {
