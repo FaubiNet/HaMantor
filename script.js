@@ -10,7 +10,26 @@ class Hamentor {
     this.loadTheme();
     this.loadHistory();
     this.setupEventListeners();
+    this.enableAutoResize(); 
+
+
   }
+enableAutoResize() {
+  const textarea = document.querySelector('.ai-input');
+  textarea.addEventListener('input', () => {
+    this.autoResize(textarea);
+  });
+
+  if (textarea.value.trim() !== '') {
+    this.autoResize(textarea);
+  }
+}
+
+autoResize(textarea) {
+  textarea.style.height = 'auto';
+  textarea.style.height = `${textarea.scrollHeight}px`;
+}
+
 
   setupEventListeners() {
     document.querySelector('.message-form').addEventListener('submit', (e) => this.handleSubmit(e));
@@ -19,15 +38,14 @@ class Hamentor {
     document.querySelectorAll('.suggestion-card').forEach(card => {
     card.addEventListener('click', () => this.handleSuggestionClick(card));
   });
-  }
+    this.aiInput.addEventListener('input', () => this.autoResize(this.aiInput));
 
-async handleSubmit(e) { // <-- Ajouter async ici
+  }
+async handleSubmit(e) {
   e.preventDefault();
   const input = document.querySelector('.ai-input');
   const message = input.value.trim();
-    if (e instanceof Event && e.type === 'submit') e.preventDefault(); 
 
-  
   if (!message) {
     input.classList.add('shake');
     setTimeout(() => input.classList.remove('shake'), 500);
@@ -39,9 +57,14 @@ async handleSubmit(e) { // <-- Ajouter async ici
 
   const loadingEl = this.createLoadingElement();
   document.querySelector('.message-history').appendChild(loadingEl);
+  
+  // Défilement après ajout du loading
+  requestAnimationFrame(() => {
+    loadingEl.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  });
 
   try {
-    const response = await this.fetchAIResponse(message); // <-- Await valide maintenant
+    const response = await this.fetchAIResponse(message);
     loadingEl.remove();
     this.addMessage(response, 'ai');
   } catch (error) {
@@ -49,7 +72,6 @@ async handleSubmit(e) { // <-- Ajouter async ici
     this.showError(error);
   }
 }
-
 
 handleSuggestionClick(card) {
   const suggestionText = card.querySelector('h4').textContent;
@@ -94,7 +116,10 @@ formatResponse(data) {
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\[🔐]/g, '🔐 <strong>Conseil Sécurité :</strong>')
     .replace(/```(\w+)?/g, '<div class="code-block">')
-    .replace(/```/g, '</div>');
+    .replace(/```/g, '</div>') 
+     .replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+        return `<div class="code-terminal"><code>${code.trim()}</code></div>`;
+      });
 }
 
 translateError(error) {
@@ -118,6 +143,10 @@ translateError(error) {
 
 
 addMessage(content, sender) {
+  // Masquer le message vide s'il existe
+  const emptyMessage = document.querySelector('.empty-chat');
+  if (emptyMessage) emptyMessage.style.display = 'none';
+
   const messageEl = document.createElement('div');
   messageEl.className = `message ${sender}`;
   messageEl.innerHTML = content;
@@ -125,15 +154,15 @@ addMessage(content, sender) {
   const history = document.querySelector('.message-history');
   history.appendChild(messageEl);
 
-  // Scroll automatique vers le bas
-  history.scrollTo({
-    top: history.scrollHeight,
-    behavior: 'smooth'
-  });
+  // Défilement optimisé avec RAF
+ requestAnimationFrame(() => {
+  const lastMessage = document.querySelector('.message-history').lastElementChild;
+  lastMessage.scrollIntoView({ behavior: 'smooth', block: 'end' });
+});
+
 
   this.saveHistory();
 }
-
 
 showError(error) {
   const errorEl = document.createElement('div');
@@ -176,13 +205,21 @@ showError(error) {
     if (history) document.querySelector('.message-history').innerHTML = history;
   }
 
-  clearChat() {
-    if (confirm('Effacer tout l\'historique de discussion ?')) {
-      localStorage.removeItem('chatHistory');
-      document.querySelector('.message-history').innerHTML = '';
-    }
-  }
-}
+clearChat() {
+  const history = document.querySelector('.message-history');
 
+  // Supprime tous les messages sauf le message vide
+  history.innerHTML = '';
+
+  // Réajoute le message vide
+  const empty = document.createElement('div');
+  empty.className = 'empty-chat';
+  empty.innerHTML = `<p>💬 Comment puis-je vous aider aujourd’hui ?</p>`;
+  history.appendChild(empty);
+
+  // Réinitialise le stockage local (si tu enregistres l'historique)
+  localStorage.removeItem('chatHistory');
+}
+}
 // Initialisation
 new Hamentor();

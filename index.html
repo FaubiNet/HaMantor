@@ -3,12 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>HaMentor | Hackers Academy</title>
   <meta name="description" content="Mentor IA officiel de la Hackers Academy - Formation en cybersécurité et développement">
   <meta property="og:title" content="HaMentor IA Mentor">
   <meta property="og:description" content="Votre guide expert en tech et cybersécurité">
   <link rel="icon" type="image/png" href="user-avatar.jpg">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap">
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -26,57 +28,43 @@
       </div>
     </div>
 
-    <div class="quick-stats">
-      <div class="stat-card">
-        <span class="material-symbols-rounded">school</span>
-        <div>
-          <h3>1.2k+</h3>
-          <p>Élèves actifs</p>
-        </div>
-      </div>
-      <div class="stat-card">
-        <span class="material-symbols-rounded">code</span>
-        <div>
-          <h3>v2.8.1</h3>
-          <p>Version IA</p>
-        </div>
-      </div>
-    </div>
+  <ul class="suggestion-grid">
+  <li class="suggestion-card security">
+    <h4>Vérifier la sécurité du réseau</h4>
+    <span class="material-symbols-rounded">security</span> <!-- Changé de shield_lock à security -->
+  </li>
+  <li class="suggestion-card">
+    <h4>Bases du Python</h4>
+    <span class="material-symbols-rounded">code</span> <!-- Changé de terminal à code -->
+  </li>
+  <li class="suggestion-card">
+    <h4>Projet du jour</h4>
+    <span class="material-symbols-rounded">developer_mode</span> <!-- Changé de code_blocks à developer_mode -->
+  </li>
+</ul>
 
-    <ul class="suggestion-grid">
-      <li class="suggestion-card security">
-        <h4>🔐 Vérifier la sécurité du réseau</h4>
-        <span class="material-symbols-rounded">shield_lock</span>
-      </li>
-      <li class="suggestion-card">
-        <h4>📚 Bases du Python</h4>
-        <span class="material-symbols-rounded">terminal</span>
-      </li>
-      <li class="suggestion-card">
-        <h4>💻 Projet du jour</h4>
-        <span class="material-symbols-rounded">code_blocks</span>
-      </li>
-    </ul>
   </header>
+    <div class="message-history">
+  <div class="empty-chat">
+    <p>💬 Comment puis-je vous aider aujourd’hui ?</p>
+  </div>
+</div>
 
-  <main class="chat-container">
-    <div class="message-history"></div>
-    
 <div class="input-panel">
   <form class="message-form">
     <div class="input-group">
-      <input type="text" placeholder="Poser une question à HaMentor..." class="ai-input">
+<textarea placeholder="Poser une question à HaMentor..." class="ai-input" rows="1"></textarea>
       <button type="submit" class="send-button">
-        <span class="material-symbols-rounded">send</span>
-      </button>
-    </div>
-    <div class="utility-buttons">
-      <button type="button" class="theme-toggle" aria-label="Changer le thème">
-        <span class="material-symbols-rounded">dark_mode</span>
-      </button>
-      <button type="button" class="clear-chat" aria-label="Effacer la conversation">
-        <span class="material-symbols-rounded">delete</span>
-      </button>
+  <span class="material-symbols-rounded">send</span>
+</button>
+
+<button type="button" class="theme-toggle" aria-label="Changer le thème">
+  <span class="material-symbols-rounded">dark_mode</span>
+</button>
+
+<button type="button" class="clear-chat" aria-label="Effacer la conversation">
+  <span class="material-symbols-rounded">delete</span>
+</button>
     </div>
   </form>
   <p class="disclaimer">Développé par Hackers Academy © 2024</p>
