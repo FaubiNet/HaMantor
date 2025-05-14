@@ -42,6 +42,7 @@ async handleSubmit(e) {
 
   this.addMessage(message, 'user');
   this.input.value = '';
+  this.input.style.height = 'auto'; // ✅ Réinitialise la zone de saisie
 
   const loading = this.createLoadingElement();
   this.history.appendChild(loading);
@@ -53,9 +54,10 @@ async handleSubmit(e) {
   } catch (error) {
     this.showError(error.message);
   } finally {
-    loading.remove(); // 🔐 Toujours exécuté, succès ou erreur
+    loading.remove();
   }
 }
+
 
 
   async fetchAIResponse(prompt) {
@@ -150,9 +152,14 @@ async handleSubmit(e) {
     document.body.classList.toggle('light-mode', theme === 'light');
   }
 
-  saveHistory() {
-    localStorage.setItem('chatHistory', this.history.innerHTML);
-  }
+ saveHistory() {
+  // Supprimer tous les messages de chargement avant de sauvegarder
+  const loaders = this.history.querySelectorAll('.message.loading');
+  loaders.forEach(loader => loader.remove());
+
+  localStorage.setItem('chatHistory', this.history.innerHTML);
+}
+
 
   loadHistory() {
     const history = localStorage.getItem('chatHistory');
