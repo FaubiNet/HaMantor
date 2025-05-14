@@ -74,6 +74,8 @@ async handleSubmit(e) {
   formatResponse(data) {
     return data.response
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+.replace(/\*(\w+.*?)\*/g, '<strong>$1</strong>')
+
       .replace(/\[🔐]/g, '🔐 <strong>Conseil Sécurité :</strong>')
       .replace(/```(\w+)?\n([\s\S]*?)```/g, (_, lang, code) => 
         `<div class="code-terminal"><code>${code.trim()}</code></div>`
