@@ -57,20 +57,38 @@ Je suis *HaMentor*, l’IA officielle de Hackers Academy. Je t’accompagne dans
 • Toujours à jour grâce à l’assistance de Blessing 🧠✨
 `;
   try {
-    const { prompt } = JSON.parse(event.body);
+    const { prompt, history } = JSON.parse(event.body);
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-    const result = await model.generateContent(SYSTEM_PROMPT + "\n\nQuestion: " + prompt);
-    
+
+    // Construire l'historique de chat
+    const chat = model.startChat({
+      history: [
+        { role: 'user', parts: [{ text: SYSTEM_PROMPT }] },
+        { role: 'model', parts: [{ text: 'Je suis prêt à vous assister.' }] },
+        ...history.map(msg => ({
+          role: msg.role === 'user' ? 'user' : 'model',
+          parts: [{ text: msg.content }]
+        }))
+      ],
+      generationConfig: { maxOutputTokens: 1000 }
+    });
+
+    const result = await chat.sendMessage(prompt);
+    const response = await result.response.text();
+
     return {
       statusCode: 200,
-      body: JSON.stringify({ response: await result.response.text() }),
+      body: JSON.stringify({ 
+        raw: response, // Réponse brute
+        formatted: response // Formatée dans le frontend
+      }),
       headers: { 'Content-Type': 'application/json' }
     };
   } catch (error) {
-    return { 
-      statusCode: 500, 
+    console.error('Erreur:', error);
+    return {
+      statusCode: 500,
       body: JSON.stringify({ error: "Erreur de traitement" })
     };
   }
