@@ -1,10 +1,12 @@
 class Hamentor {
   constructor() {
-    this.API_URL = '/api/gemini';
-    this.aiInput = document.querySelector('.ai-input');
-    this.markdownPreview = document.querySelector('.markdown-preview');
-    this.notificationSound = new Audio('notification.mp3');
-    this.typingAnimation = null;
+    this.API_ENDPOINT = '/api/gemini';
+    this.form = document.querySelector('.message-form');
+    this.input = document.querySelector('.ai-input');
+    this.history = document.querySelector('.message-history');
+    this.themeToggle = document.querySelector('.theme-toggle');
+    this.clearButton = document.querySelector('.clear-chat');
+
     this.init();
   }
 
@@ -12,270 +14,84 @@ class Hamentor {
     this.loadTheme();
     this.loadHistory();
     this.setupEventListeners();
-    this.enableAutoResize();
-    this.enableMarkdownPreview();
-    this.initAnimations();
-    this.initServiceWorker();
+    this.setupAutoResize();
   }
 
-  // Initialisation des événements
   setupEventListeners() {
-    document.querySelector('.message-form').addEventListener('submit', (e) => this.handleSubmit(e));
-    document.querySelector('.theme-toggle').addEventListener('click', () => this.toggleTheme());
-    document.querySelector('.clear-chat').addEventListener('click', () => this.clearChat());
-    this.aiInput.addEventListener('input', () => this.autoResize(this.aiInput));
+    this.form.addEventListener('submit', (e) => this.handleSubmit(e));
+    this.themeToggle.addEventListener('click', () => this.toggleTheme());
+    this.clearButton.addEventListener('click', () => this.clearChat());
   }
 
-  // Gestion du redimensionnement automatique
-  enableAutoResize() {
-    this.autoResize(this.aiInput);
-    this.aiInput.addEventListener('input', () => this.autoResize(this.aiInput));
-  }
-
-  autoResize(textarea) {
-    textarea.style.height = 'auto';
-    textarea.style.height = `${textarea.scrollHeight}px`;
-  }
-
-  // Gestion du thème
-  toggleTheme() {
-    document.body.classList.toggle('light-mode');
-    localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
-  }
-
-  loadTheme() {
-    const theme = localStorage.getItem('theme') || 'dark';
-    document.body.classList.toggle('light-mode', theme === 'light');
-  }
-
-  // Gestion de l'historique
-  saveHistory() {
-    const history = document.querySelector('.message-history').innerHTML;
-    localStorage.setItem('chatHistory', history);
-  }
-
-  loadHistory() {
-    const history = localStorage.getItem('chatHistory');
-    if (history) document.querySelector('.message-history').innerHTML = history;
-  }
-
-  clearChat() {
-    const history = document.querySelector('.message-history');
-    history.innerHTML = '';
-    const empty = document.createElement('div');
-    empty.className = 'empty-chat';
-    empty.innerHTML = `<p>💬 Comment puis-je vous aider aujourd’hui ?</p>`;
-    history.appendChild(empty);
-    localStorage.removeItem('chatHistory');
-  }
-
-  // Animations
-  initAnimations() {
-    AOS.init({
-      duration: 800,
-      once: true,
-      easing: 'ease-out-quad'
-    });
-
-    gsap.from('.branding', {
-      duration: 1.2,
-      y: 80,
-      opacity: 0,
-      ease: 'expo.out',
-      delay: 0.3
-    });
-
-    gsap.from('.assistant-status', {
-      duration: 0.8,
-      x: -50,
-      opacity: 0,
-      delay: 0.6,
-      ease: 'elastic.out(1, 0.5)'
+  setupAutoResize() {
+    this.input.addEventListener('input', () => {
+      this.input.style.height = 'auto';
+      this.input.style.height = `${this.input.scrollHeight}px`;
     });
   }
 
-  // Prévisualisation Markdown
-  enableMarkdownPreview() {
-    let previewTimeout;
-    this.aiInput.addEventListener('input', () => {
-      clearTimeout(previewTimeout);
-      previewTimeout = setTimeout(() => {
-        const markdownContent = marked.parse(this.aiInput.value);
-        this.animatePreviewUpdate(markdownContent);
-      }, 300);
-    });
+async handleSubmit(e) {
+  e.preventDefault();
+  const message = this.input.value.trim();
+
+  if (!message) {
+    this.input.classList.add('shake');
+    setTimeout(() => this.input.classList.remove('shake'), 500);
+    return;
   }
 
-  animatePreviewUpdate(content) {
-    gsap.to(this.markdownPreview, {
-      duration: 0.2,
-      opacity: 0,
-      y: -5,
-      onComplete: () => {
-        this.markdownPreview.innerHTML = content;
-        gsap.to(this.markdownPreview, {
-          duration: 0.3,
-          opacity: 1,
-          y: 0,
-          ease: 'power2.out'
-        });
-      }
-    });
+  this.addMessage(message, 'user');
+  this.input.value = '';
+
+  const loading = this.createLoadingElement();
+  this.history.appendChild(loading);
+  loading.scrollIntoView({ behavior: 'smooth' });
+
+  try {
+    const response = await this.fetchAIResponse(message);
+    this.addMessage(response, 'ai');
+  } catch (error) {
+    this.showError(error.message);
+  } finally {
+    loading.remove(); // 🔐 Toujours exécuté, succès ou erreur
   }
+}
 
-  // Soumission du formulaire
-  async handleSubmit(e) {
-    e.preventDefault();
-    const message = this.aiInput.value.trim();
 
-    if (!message) {
-      this.animateInputError();
-      return;
-    }
-
-    this.addMessage(message, 'user');
-    this.resetInput();
-    
-    try {
-      const response = await this.fetchAIResponse(message);
-      this.displayAIResponse(response);
-    } catch (error) {
-      this.handleError(error);
-    }
-  }
-
-  animateInputError() {
-    gsap.timeline()
-      .to(this.aiInput, {
-        x: [-5, 5, -5, 0],
-        duration: 0.4,
-        ease: 'power1.out'
-      })
-      .to(this.aiInput, {
-        borderColor: ['#ff0000', '#f87171', '#0F172A'],
-        duration: 0.8,
-        ease: 'power2.out'
-      }, 0);
-  }
-
-  // Communication API
   async fetchAIResponse(prompt) {
-    const loadingEl = this.createLoadingElement();
-    document.querySelector('.message-history').appendChild(loadingEl);
-    
-    gsap.from(loadingEl, {
-      opacity: 0,
-      y: 30,
-      duration: 0.4,
-      ease: 'back.out(1.2)'
+    const response = await fetch(this.API_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt })
     });
 
-    try {
-      const response = await fetch(this.API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt })
-      });
-
-      if (!response.ok) throw new Error('API Error');
-      const data = await response.json();
-      
-      return this.formatResponse(data);
-    } finally {
-      gsap.to(loadingEl, {
-        opacity: 0,
-        y: -20,
-        duration: 0.3,
-        onComplete: () => loadingEl.remove()
-      });
-    }
+    if (!response.ok) throw new Error('Erreur de réseau');
+    
+    const data = await response.json();
+    return this.formatResponse(data);
   }
 
-  // Formatage de la réponse
   formatResponse(data) {
-    return data.text
+    return data.response
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\[🔐]/g, '🔐 <strong>Conseil Sécurité :</strong>')
-      .replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
-        return `<div class="code-terminal"><code>${code.trim()}</code></div>`;
-      });
+      .replace(/```(\w+)?\n([\s\S]*?)```/g, (_, lang, code) => 
+        `<div class="code-terminal"><code>${code.trim()}</code></div>`
+      );
   }
 
-  // Affichage des réponses
-  displayAIResponse(response) {
-    this.addMessage(response, 'ai');
-    this.animateResponseEffects();
-  }
+  addMessage(content, type) {
+    const message = document.createElement('div');
+    message.className = `message ${type}`;
+    message.innerHTML = content;
+    
+    if (document.querySelector('.empty-chat')) {
+      document.querySelector('.empty-chat').remove();
+    }
 
-  animateResponseEffects() {
-    gsap.to('.status-indicator', {
-      scale: 1.2,
-      duration: 0.3,
-      repeat: 1,
-      yoyo: true,
-      ease: 'power2.out'
-    });
-  }
-
-  // Gestion des messages
-  addMessage(content, sender) {
-    this.notificationSound.volume = 0.2;
-    this.notificationSound.play();
-
-    const messageEl = document.createElement('div');
-    messageEl.className = `message ${sender}`;
-    messageEl.innerHTML = content;
-
-    document.querySelector('.empty-chat')?.remove();
-    const history = document.querySelector('.message-history');
-    history.appendChild(messageEl);
-
-    this.animateMessageEntry(messageEl, sender);
+    this.history.appendChild(message);
     this.saveHistory();
-    this.scrollToBottom();
-  }
-
-  animateMessageEntry(element, sender) {
-    gsap.from(element, {
-      duration: 0.6,
-      y: 40,
-      opacity: 0,
-      ease: 'back.out(1.2)',
-      rotationX: sender === 'ai' ? -15 : 15,
-      transformOrigin: sender === 'ai' ? 'left center' : 'right center'
-    });
-  }
-
-  // Gestion des erreurs
-  handleError(error) {
-    const errorEl = document.createElement('div');
-    errorEl.className = 'message error';
-    errorEl.innerHTML = `
-      <span class="material-symbols-rounded">error</span>
-      <div>
-        <h4>⛔ Problème détecté avec HaMentor</h4>
-        <p>${this.translateError(error.message)}</p>
-      </div>
-    `;
-    document.querySelector('.message-history').appendChild(errorEl);
-    this.scrollToBottom();
-  }
-
-  translateError(error) {
-    const errors = {
-      'API key not valid': 'Erreur système : Contactez Hackers Academy',
-      '503': 'Service temporairement indisponible',
-      'quota': 'Quota d’utilisation dépassé',
-      'API Error': 'Erreur de communication avec le serveur'
-    };
-    return errors[error] || 'Erreur inconnue';
-  }
-
-  // Méthodes utilitaires
-  resetInput() {
-    this.aiInput.value = '';
-    this.markdownPreview.innerHTML = '';
-    this.autoResize(this.aiInput);
+    message.scrollIntoView({ behavior: 'smooth' });
   }
 
   createLoadingElement() {
@@ -288,27 +104,59 @@ class Hamentor {
     return loader;
   }
 
-  scrollToBottom() {
-    const container = document.querySelector('.message-history');
-    gsap.to(container, {
-      scrollTo: { y: container.scrollHeight, autoKill: false },
-      duration: 0.8,
-      ease: 'power3.out'
-    });
+  showError(message) {
+    const error = document.createElement('div');
+    error.className = 'message error';
+    error.innerHTML = `
+      <span class="material-symbols-rounded">error</span>
+      <div>
+        <h4>⛔ Erreur système</h4>
+        <p>${this.translateError(message)}</p>
+      </div>
+    `;
+    this.history.appendChild(error);
+    error.scrollIntoView({ behavior: 'smooth' });
   }
 
-  // Service Worker
-  initServiceWorker() {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then(registration => {
-          console.log('SW enregistré:', registration);
-        })
-        .catch(error => {
-          console.log('Échec d\'enregistrement:', error);
-        });
-    }
+  translateError(error) {
+    const errors = {
+      'network': 'Problème de connexion internet',
+      'quota': 'Limite d\'utilisation atteinte',
+      'default': 'Erreur inconnue - Contactez le support'
+    };
+    return errors[error.toLowerCase()] || errors.default;
+  }
+
+  toggleTheme() {
+    document.body.classList.toggle('light-mode');
+    localStorage.setItem('theme', 
+      document.body.classList.contains('light-mode') ? 'light' : 'dark'
+    );
+  }
+
+  clearChat() {
+    this.history.innerHTML = `
+      <div class="empty-chat">
+        <p>💬 Comment puis-je vous aider aujourd’hui ?</p>
+      </div>
+    `;
+    localStorage.removeItem('chatHistory');
+  }
+
+  loadTheme() {
+    const theme = localStorage.getItem('theme') || 'dark';
+    document.body.classList.toggle('light-mode', theme === 'light');
+  }
+
+  saveHistory() {
+    localStorage.setItem('chatHistory', this.history.innerHTML);
+  }
+
+  loadHistory() {
+    const history = localStorage.getItem('chatHistory');
+    if (history) this.history.innerHTML = history;
   }
 }
 
-new Hamentor();
+// Initialisation
+document.addEventListener('DOMContentLoaded', () => new Hamentor());
